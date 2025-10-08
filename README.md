@@ -7,7 +7,9 @@ app/
 │   │   └── LoginController.java    ← LÓGICA DE NEGOCIO
 │   ├── vista/
 │   │   └── MainActivity.java       ← INTERFAZ VISUAL
-│   └── model/ (opcional, para futuras mejoras)
+│   │   └── SecondActivity.java       ← INTERFAZ VISUAL
+│   └── model/
+│   │   └── Alumno.java
 └── res/layout/
     └── activity_main.xml           ← DISEÑO DE PANTALLA
 ```
