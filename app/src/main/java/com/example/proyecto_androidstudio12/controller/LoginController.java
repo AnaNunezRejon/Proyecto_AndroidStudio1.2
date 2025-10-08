@@ -4,182 +4,159 @@ import java.util.regex.Pattern;
 
 public class LoginController {
 
-    private static final Pattern CARACTERES_PERMITIDOS_SEGUROS =
-            Pattern.compile("^[a-zA-Z0-9._]+$");
-    private static final int LARGO_MINIMO_USUARIO = 3;
-    private static final int LARGO_MINIMO_CONTRASENA = 6;
+
+    // CONSTANTES DE CONFIGURACIÓN ---------------------------------------------------------------------------
+    // Patrón que define los caracteres permitidos: letras, números, punto y guión bajo
+    private static final Pattern CARACTERES_PERMITIDOS_SEGUROS = Pattern.compile("^[a-zA-Z0-9._]+$");
 
 
+    private static final int LARGO_MINIMO_USUARIO = 3;// Longitud mínima requerida para el usuario
+    private static final int LARGO_MINIMO_CONTRASENA = 6; // Longitud mínima requerida para la contraseña
+
+
+    // METODO 1: Validación individual de campos ---------------------------------------------------------------------------
+    // Este metodo valida UN solo campo (usuario o contraseña) y retorna un mensaje de error si encuentra problemas
     public String validarCampoIndividual(String entrada, boolean esUsuario) {
+        // Si el campo está vacío, no hay error (estado neutro)
         if (entrada.isEmpty()) {
             return "";
         }
+        // Configurar parámetros según el tipo de campo
+        int largoMinimo;
+        String nombreCampo;
 
-        int largoMinimo = esUsuario ? LARGO_MINIMO_USUARIO : LARGO_MINIMO_CONTRASENA;
-        String nombreCampo = esUsuario ? "usuario" : "contraseña";
+        // Determinar si estamos validando usuario o contraseña
+        if (esUsuario) {
+            largoMinimo = LARGO_MINIMO_USUARIO;
+            nombreCampo = "usuario";
+        } else {
+            largoMinimo = LARGO_MINIMO_CONTRASENA;
+            nombreCampo = "contraseña";
+        }
 
-        // Chequeo de Longitud
+        // PRIMERA VALIDACIÓN: Longitud del campo
+        // Verifica que tenga al menos el mínimo de caracteres requerido
         if (entrada.length() < largoMinimo) {
             return "El " + nombreCampo + " es muy corto (mín. " + largoMinimo + ").";
         }
 
-        // Chequeo de Caracteres
+        // SEGUNDA VALIDACIÓN: Caracteres permitidos
+        // Usa la expresión regular para verificar que solo tenga caracteres válidos
         if (!CARACTERES_PERMITIDOS_SEGUROS.matcher(entrada).matches()) {
             return "El " + nombreCampo + " no puede tener caracteres ^[a-zA-Z0-9._]+$.";
         }
 
+        // Si pasa todas las validaciones, retorna string vacío (sin errores)
         return "";
     }
 
 
+    // METODO 2: Validación completa del formulario  ---------------------------------------------------------------------------
+    // Este mEtodo valida AMBOS campos juntos y retorna un mensaje de error general
     public String obtenerMensajeError(String usuario, String contrasena) {
-        // 1. Campos Vacíos
+        // PRIMERA VALIDACIÓN: Campos vacíos
+        // Verifica que ninguno de los dos campos esté vacío
         if (usuario.trim().isEmpty() || contrasena.trim().isEmpty()) {
             return "Debes rellenar ambos campos.";
         }
 
-        // 2. Errores de Usuario (Longitud y Caracteres)
+        // SEGUNDA VALIDACIÓN: Usuario individual
+        // Valida solo el campo de usuario
         String errorUsuario = validarCampoIndividual(usuario, true);
+        // Si hay error en usuario, lo retorna inmediatamente
         if (!errorUsuario.isEmpty()) {
-            // El mensaje ya es claro
             return errorUsuario;
         }
 
-        // 3. Errores de Contraseña (Longitud y Caracteres)
+        // TERCERA VALIDACIÓN: Contraseña individual
+        // Valida solo el campo de contraseña
         String errorContrasena = validarCampoIndividual(contrasena, false);
+        // Si hay error en contraseña, lo retorna
         if (!errorContrasena.isEmpty()) {
-            // El mensaje ya es claro
             return errorContrasena;
         }
 
+        // Si pasa todas las validaciones, retorna string vacío (éxito)
         return ""; // ¡Registro exitoso!
     }
 
 
+    // METODO 3: Conversión a código ASCII ---------------------------------------------------------------------------
+    // Convierte una cadena de texto a su representación numérica ASCII
     public String convertirAASCII(String texto) {
-        if (texto == null || texto.isEmpty()) return "";
+        // Si el texto está vacío, retorna cadena vacía
+        if (texto.isEmpty()) {
+            return "";
+        }
 
+        // StringBuilder para construir el resultado eficientemente
         StringBuilder sb = new StringBuilder();
+
+        // Recorre cada carácter del texto
         for (int i = 0; i < texto.length(); i++) {
+            // Convierte el carácter a su valor ASCII (número)
             sb.append((int) texto.charAt(i));
+
+            // Agrega guión entre números, excepto en el último
             if (i < texto.length() - 1) {
                 sb.append("-");
             }
         }
+
+        // Retorna la cadena ASCII resultante
         return sb.toString();
     }
 
+
+    // METODO 4: Crear mensaje de éxito  ---------------------------------------------------------------------------
+    // Genera el mensaje que se muestra cuando el registro es exitoso
     public String crearMensajeRegistroExitoso(String usuario, String contrasena) {
+        // Convierte la contraseña a ASCII para mostrarla codificada
         String contrasenaASCII = convertirAASCII(contrasena);
-        return "✅ Usuario " + usuario + " con contraseña codificada:\n" +
+
+        // Construye y retorna el mensaje de éxito
+        return "Usuario " + usuario + " con contraseña codificada:\n" +
                 contrasenaASCII + "\nha sido creado.";
     }
+
+
+    // METODO 5: Determinar qué campos tienen error  ---------------------------------------------------------------------------
+    // Analiza el mensaje de error y determina qué campos fallaron
+    // Retorna un arreglo booleano: [usuario_error, contraseña_error]
+    public boolean[] obtenerCamposConError(String mensajeError) {
+        // Arreglo para indicar errores: posición 0 = usuario, posición 1 = contraseña
+        boolean[] camposError = new boolean[2];
+
+        // Si el mensaje menciona "usuario", marca el campo usuario como erróneo
+        if (mensajeError.contains("usuario")) {
+            camposError[0] = true;
+        }
+
+        // Si el mensaje menciona "contraseña", marca el campo contraseña como erróneo
+        if (mensajeError.contains("contraseña")) {
+            camposError[1] = true;
+        }
+
+        // Si el mensaje menciona "ambos", marca ambos campos como erróneos
+        if (mensajeError.contains("ambos")) {
+            camposError[0] = true;
+            camposError[1] = true;
+        }
+
+        // Retorna el arreglo con la información de qué campos fallaron
+        return camposError;
+    }
+
+
+    // METODO 6: Validación para feedback en tiempo real  ---------------------------------------------------------------------------
+    // Usado mientras el usuario escribe para dar feedback inmediato
+    public boolean campoEsValido(String texto, boolean esUsuario) {
+        // Si el campo está vacío, retorna false (estado neutro/gris)
+        if (texto.isEmpty()) {
+            return false;
+        }
+
+        // Si no está vacío, valida el campo y retorna true si es válido
+        return validarCampoIndividual(texto, esUsuario).isEmpty();
+    }
 }
-
-/*
-package com.example.proyecto_androidstudio12.controller;
-
-import java.util.regex.Pattern;
-
-public class LoginController {
-
-    private static final Pattern CARACTERES_PERMITIDOS_SEGUROS =
-            Pattern.compile("^[a-zA-Z0-9._]+$");
-
-
-    public boolean validarRegistro(String username, String password) {
-
-        // 1. Validar campos vacíos
-        if (username.trim().isEmpty() || password.trim().isEmpty()) {
-            return false;
-        }
-
-        // 2. Validar longitud mínima
-        if (username.length() < 3 || password.length() < 6) {
-            return false;
-        }
-
-        // 3. Validar caracteres no permitidos (SEGURIDAD)
-        if (!CARACTERES_PERMITIDOS_SEGUROS.matcher(username).matches() ||
-                !CARACTERES_PERMITIDOS_SEGUROS.matcher(password).matches()) {
-            return false;
-        }
-
-        // Si ha pasado todas las validaciones de formato y seguridad,
-        // SIMULAMOS que el registro fue exitoso.
-        return true;
-    }
-
-    // Este metodo obtiene el mensaje de error específico si el registro falla
-    public String obtenerMensajeError(String username, String password) {
-        if (username.trim().isEmpty() || password.trim().isEmpty()) {
-            return "Debes rellenar todos los campos.";
-        }
-        if (username.length() < 3) {
-            return "El usuario debe tener al menos 3 caracteres.";
-        }
-        if (password.length() < 6) {
-            return "La contraseña debe tener al menos 6 caracteres.";
-        }
-        if (!CARACTERES_PERMITIDOS_SEGUROS.matcher(username).matches()) {
-            return "El usuario solo puede contener letras, números, puntos (.) y guiones bajos (_).";
-        }
-        if (!CARACTERES_PERMITIDOS_SEGUROS.matcher(password).matches()) {
-            return "La contraseña solo puede contener letras, números, puntos (.) y guiones bajos (_).";
-        }
-
-        return "";
-    }
-
-    public String convertirAASCII(String texto) {
-        if (texto == null || texto.isEmpty()) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < texto.length(); i++) {
-            char caracter = texto.charAt(i);
-            int valorASCII = (int) caracter;
-
-            sb.append(valorASCII);
-
-            if (i < texto.length() - 1) {
-                sb.append("-");
-            }
-        }
-        return sb.toString();
-    }
-
-    public String crearMensajeRegistroExitoso(String username, String password) {
-        String passwordASCII = convertirAASCII(password);
-
-        // Formato solicitado: Usuario [username] con contraseña codificada [ASCII]
-        return "Usuario " + username + " con contraseña codificada:\n" +
-                passwordASCII + "\nha sido creado.";
-    }
-
-    public String validarCampoIndividual(String input, boolean esUsuario) {
-        if (input.isEmpty()) {
-            // Si está vacío, color gris.
-            return "";
-        }
-
-        // 1. Validar longitud mínima
-        int minLength = esUsuario ? 3 : 6;
-        String campoNombre = esUsuario ? "El usuario" : "La contraseña";
-
-        if (input.length() < minLength) {
-            return "El"+ campoNombre + " debe tener al menos " + minLength + " caracteres.";
-        }
-
-        // 2. Validar caracteres no permitidos
-        if (!CARACTERES_PERMITIDOS_SEGUROS.matcher(input).matches()) {
-            String tipoCampo = esUsuario ? "usuario" : "contraseña";
-            return "El " + tipoCampo + " solo puede contener letras, números, puntos (.) y guiones bajos (_).";
-        }
-
-        return ""; // Correcto
-    }
-
-}
-*/
-

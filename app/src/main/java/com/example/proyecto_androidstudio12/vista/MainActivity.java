@@ -15,267 +15,161 @@ import com.example.proyecto_androidstudio12.controller.LoginController;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Referencias a los componentes de la interfaz
-    private EditText etUsuario, etContrasena;
-    private Button btnCrearUsuario;
-    private LoginController controlador; // Nuestro objeto que maneja la lógica
 
+    // DECLARACIÓN DE VARIABLES
+    private EditText etUsuario;// Campo de texto para el nombre de usuario
+    private EditText etContrasena; // Campo de texto para la contraseña
+    private Button btnCrearUsuario;// Botón para crear usuario/iniciar sesión
+    private LoginController controlador;    // Controlador que maneja la lógica de validación
+
+
+    // METODO PRINCIPAL: onCreate ---------------------------------------------------------------------------
+    // Este metodo se ejecuta cuando la actividad se crea por primera vez
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Establece el diseño visual (layout) desde activity_main.xml
         setContentView(R.layout.activity_main);
 
-        // Inicializar el Controlador
+        // INICIALIZAR CONTROLADOR - Maneja toda la lógica de negocio
         controlador = new LoginController();
 
-        // Conectar las variables de Java con los IDs del XML
-        etUsuario = findViewById(R.id.et_username);
-        etContrasena = findViewById(R.id.et_password);
-        btnCrearUsuario = findViewById(R.id.btn_login);
+        // VINCULAR COMPONENTES - Conecta variables Java con elementos XML
+        etUsuario = findViewById(R.id.et_username);        // Campo de usuario
+        etContrasena = findViewById(R.id.et_password);     // Campo de contraseña
+        btnCrearUsuario = findViewById(R.id.btn_login);    // Botón de login
+
+        // Personalizar texto del botón
         btnCrearUsuario.setText("CREAR USUARIO");
 
-        // Colores iniciales
+        // ESTABLECER COLORES INICIALES - Ambos campos en gris neutro
         establecerColorCampo(etUsuario, R.color.gris_neutro);
         establecerColorCampo(etContrasena, R.color.gris_neutro);
 
-        // La Vista escucha eventos del usuario
-        // Escucha en tiempo real para el feedback rojo/verde
-        agregarEscuchadorTexto(etUsuario, true);
-        agregarEscuchadorTexto(etContrasena, false);
+        // CONFIGURAR ESCUCHADORES EN TIEMPO REAL
+        // Estos detectan cuando el usuario escribe en los campos
+        agregarEscuchadorTexto(etUsuario, true);       // true = es campo usuario
+        agregarEscuchadorTexto(etContrasena, false);   // false = es campo contraseña
 
-        // Escucha del botón para la acción final
+        // CONFIGURAR BOTÓN - Qué pasa cuando se hace clic
         btnCrearUsuario.setOnClickListener(v -> intentarRegistro());
     }
 
 
+    // METODO: intentarRegistro  ---------------------------------------------------------------------------
+    // Se ejecuta cuando el usuario presiona el botón "CREAR USUARIO"
     private void intentarRegistro() {
+        // OBTENER TEXTO ACTUAL de los campos
         String usuario = etUsuario.getText().toString();
         String contrasena = etContrasena.getText().toString();
 
-        // Pedir al Controller el mensaje de error final.
+        // DELEGAR VALIDACIÓN AL CONTROLADOR
+        // El controlador decide si hay errores y cuáles son
         String mensajeError = controlador.obtenerMensajeError(usuario, contrasena);
 
+        // VERIFICAR RESULTADO DE LA VALIDACIÓN
         if (mensajeError.isEmpty()) {
-            // ÉXITO: Recibe el mensaje final del Controller y lo muestra.
+            // CASO ÉXITO: No hay errores, registro válido
+
+            // Pedir al controlador el mensaje de éxito
             String mensajeExito = controlador.crearMensajeRegistroExitoso(usuario, contrasena);
+
+            // Mostrar mensaje de éxito al usuario
             Toast.makeText(this, mensajeExito, Toast.LENGTH_LONG).show();
 
-            // Actualizar UI y navegar
+            // ACTUALIZAR INTERFAZ - Poner ambos campos en verde
             establecerColorCampo(etUsuario, R.color.verde_correcto);
             establecerColorCampo(etContrasena, R.color.verde_correcto);
 
+            // NAVEGAR A SIGUIENTE PANTALLA
             Intent intent = new Intent(MainActivity.this, SecondActivity.class);
-            startActivity(intent);
-            finish();
-        } else {
-            // Muestra el mensaje de error que le dio el Controller.
-            Toast.makeText(this, " Error: " + mensajeError, Toast.LENGTH_LONG).show();
+            startActivity(intent);  // Inicia la nueva actividad
+            finish();               // Cierra esta actividad actual
 
-            // Pone en rojo el campo que falló según el mensaje de error.
-            manejarColorErrorFinal(mensajeError);
+        } else {
+            // CASO ERROR: Hay problemas en la validación
+            // Mostrar mensaje de error al usuario
+            Toast.makeText(this, " Error: " + mensajeError, Toast.LENGTH_LONG).show();
+            // PEDIR AL CONTROLADOR qué campos específicamente fallaron
+            boolean[] camposConError = controlador.obtenerCamposConError(mensajeError);
+            // Actualizar colores de la interfaz basado en lo que dijo el controlador
+            manejarColorErrorFinal(camposConError);
         }
     }
 
-    private void manejarColorErrorFinal(String mensajeError) {
-        // Reiniciar los colores a gris
+
+    // METODO: manejarColorErrorFinal  ---------------------------------------------------------------------------
+    // Aplica colores rojos a los campos que el controlador marcó como erróneos
+    private void manejarColorErrorFinal(boolean[] camposConError) {
+        // PRIMERO: Reiniciar todos los campos a color gris neutro
         establecerColorCampo(etUsuario, R.color.gris_neutro);
         establecerColorCampo(etContrasena, R.color.gris_neutro);
 
-        // La lógica se basa en las palabras clave del Controller
-        if (mensajeError.contains("usuario") || mensajeError.contains("ambos")) {
+        // LUEGO: Aplicar rojo solo a los campos que tienen error
+        // camposConError[0] = usuario, camposConError[1] = contraseña
+        if (camposConError[0]) {
             establecerColorCampo(etUsuario, R.color.rojo_error);
         }
-        if (mensajeError.contains("contraseña") || mensajeError.contains("ambos")) {
+        if (camposConError[1]) {
             establecerColorCampo(etContrasena, R.color.rojo_error);
         }
     }
 
 
+    // METODO: manejarColorCampo ---------------------------------------------------------------------------
+    // Maneja el color de los campos MIENTRAS el usuario escribe
     private void manejarColorCampo(EditText campoTexto, String texto, boolean esUsuario) {
-
+        // Si el campo está vacío, poner color gris (estado neutro)
         if (texto.isEmpty()) {
             establecerColorCampo(campoTexto, R.color.gris_neutro);
             return;
         }
-        // Pide al Controller que valide solo este campo
-        String mensajeError = controlador.validarCampoIndividual(texto, esUsuario);
+        // CONSULTAR AL CONTROLADOR si el campo actual es válido
+        boolean esValido = controlador.campoEsValido(texto, esUsuario);
 
-        if (!mensajeError.isEmpty()) {
-            // Si hay error de formato/longitud -> Rojo
-            establecerColorCampo(campoTexto, R.color.rojo_error);
-        } else {
-            // Si no hay error -> Verde
+        // Aplicar color basado en la respuesta del controlador
+        if (esValido) {
+            // Verde si el controlador dice que es válido
             establecerColorCampo(campoTexto, R.color.verde_correcto);
+        } else {
+            // Rojo si el controlador dice que no es válido
+            establecerColorCampo(campoTexto, R.color.rojo_error);
         }
     }
 
+
+    // METODO: agregarEscuchadorTexto ---------------------------------------------------------------------------
+    // Configura un "escuchador" que detecta cuando el usuario escribe en un campo
     private void agregarEscuchadorTexto(final EditText campoTexto, final boolean esUsuario) {
         campoTexto.addTextChangedListener(new TextWatcher() {
+            // Se ejecuta ANTES de que el texto cambie
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            // Se ejecuta MIENTRAS el texto está cambiando
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
+            // Se ejecuta DESPUÉS de que el texto ha cambiado
             @Override
             public void afterTextChanged(Editable s) {
+                // Llama al metodo que maneja el color del campo
                 manejarColorCampo(campoTexto, s.toString(), esUsuario);
             }
         });
     }
 
+
+    // METODO: establecerColorCampo ---------------------------------------------------------------------------
+    // Metodo utilitario que aplica color al texto y borde de un campo
     private void establecerColorCampo(EditText campoTexto, int idRecursoColor) {
+        // Obtener el color real desde el archivo de recursos colors.xml
         int color = ContextCompat.getColor(this, idRecursoColor);
+
+        // Aplicar el color al TEXTO del campo
         campoTexto.setTextColor(color);
+
+        // Aplicar el color al BORDE/FONDO del campo
         campoTexto.getBackground().setTint(color);
     }
 }
-/*
-
-FUNCIONA-------------------------------------------------------------------------------
-
-package com.example.proyecto_androidstudio12.vista;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-
-import android.content.Intent;
-import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Toast;
-
-import com.example.proyecto_androidstudio12.R;
-import com.example.proyecto_androidstudio12.controller.LoginController;
-
-public class MainActivity extends AppCompatActivity {
-
-    private EditText etUsername, etPassword;
-    private Button btnLogin;
-    private LoginController controller;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        controller = new LoginController();
-        etUsername = findViewById(R.id.et_username);
-        etPassword = findViewById(R.id.et_password);
-        btnLogin = findViewById(R.id.btn_login);
-
-        btnLogin.setText("CREAR USUARIO");
-
-        // Inicializar los colores a gris al inicio
-        setEditTextColor(etUsername, R.color.gris_neutro);
-        setEditTextColor(etPassword, R.color.gris_neutro);
-
-        // AÑADIR LISTENERS DE TEXTO (TextWatcher)
-        addTextWatcherToField(etUsername, true); // true indica que es el usuario
-        addTextWatcherToField(etPassword, false); // false indica que es la contraseña
-
-        btnLogin.setOnClickListener(v -> attemptRegistration());
-    }
-
-
-    private void validateField(EditText editText, String text, boolean isUsername) {
-
-        // Si el campo está vacío, lo ponemos gris (neutro) y salimos.
-        if (text.isEmpty()) {
-            setEditTextColor(editText, R.color.gris_neutro);
-            return;
-        }
-
-        // Usamos la función individual del Controller
-        String errorMsg = controller.validarCampoIndividual(text, isUsername);
-
-        // Si hay un error de formato/longitud, ROJO. Si está bien, VERDE.
-        if (!errorMsg.isEmpty()) {
-            // La validación FALLÓ
-            setEditTextColor(editText, R.color.rojo_error);
-        } else {
-            // La validación PASÓ
-            setEditTextColor(editText, R.color.verde_correcto);
-        }
-    }
-
-
-    private void addTextWatcherToField(final EditText editText, final boolean isUsername) {
-        editText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                // No usado
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // No usado
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                // Llamamos a la función de validación con el texto actual
-                validateField(editText, s.toString(), isUsername);
-            }
-        });
-    }
-
-    // El metodo setEditTextColor se mantiene igual (mueve esta función al final de la clase)
-    private void setEditTextColor(EditText editText, int colorResId) {
-        int color = ContextCompat.getColor(this, colorResId);
-        editText.setTextColor(color);
-        editText.getBackground().setTint(color);
-    }
-
-    // El metodo attemptRegistration se mantiene igual (solo se ejecuta al presionar el botón)
-    private void attemptRegistration() {
-        String username = etUsername.getText().toString();
-        String password = etPassword.getText().toString();
-
-        // 1. Validar si el registro fue exitoso (Controller)
-        boolean registroExitoso = controller.validarRegistro(username, password);
-
-        // Reiniciar colores a gris ANTES de la validación final para limpiarlo
-        setEditTextColor(etUsername, R.color.gris_neutro);
-        setEditTextColor(etPassword, R.color.gris_neutro);
-
-        if (registroExitoso) {
-
-            // Poner AMBOS en verde
-            setEditTextColor(etUsername, R.color.verde_correcto);
-            setEditTextColor(etPassword, R.color.verde_correcto);
-
-            String mensajeToast = controller.crearMensajeRegistroExitoso(username, password);
-            Toast.makeText(this, mensajeToast, Toast.LENGTH_LONG).show();
-
-            Intent intent = new Intent(MainActivity.this, SecondActivity.class);
-            startActivity(intent);
-            finish();
-
-        } else {
-
-            // Identificar cuál falló y ponerlo en rojo
-            String mensajeError = controller.obtenerMensajeError(username, password);
-
-            Toast.makeText(this, mensajeError, Toast.LENGTH_LONG).show();
-
-
-            // 1. Si el mensaje de error incluye "Usuario" o "rellenar"
-            if (mensajeError.contains("Usuario") || (mensajeError.contains("rellenar") && username.isEmpty())) {
-                setEditTextColor(etUsername, R.color.rojo_error);
-            } else {
-                // Si el error no es de usuario, y pasó el chequeo de usuario, lo dejamos en gris neutro
-                setEditTextColor(etUsername, R.color.gris_neutro);
-            }
-
-            // 2. Si el mensaje de error incluye "Contraseña" o "rellenar"
-            if (mensajeError.contains("Contraseña") || (mensajeError.contains("rellenar") && password.isEmpty())) {
-                setEditTextColor(etPassword, R.color.rojo_error);
-            } else {
-                // Si el error no es de contraseña, y pasó el chequeo de contraseña, lo dejamos en gris neutro
-                setEditTextColor(etPassword, R.color.gris_neutro);
-            }
-        }
-    }
-}
-*/
